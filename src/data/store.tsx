@@ -136,7 +136,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     writeStorageMode(mode);
     setStorageModeState(mode);
     setData(EMPTY);
-    setAdapter(createAdapter(mode));
+    const next = createAdapter(mode);
+    setAdapter(next);
+    // Статус берём у нового адаптера сразу. Иначе до первого эффекта интерфейс
+    // показывал бы чужой статус — например, «вход выполнен» от локального
+    // хранилища на экране облака, которое ещё не подключено.
+    setStatus(next.getStatus());
   }, []);
 
   const connect = useCallback(

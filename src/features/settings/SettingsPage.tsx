@@ -135,7 +135,9 @@ function StorageSection({
           ) : (
             <>
               <p className="page-sub">
-                Подключение к Supabase. Как завести проект — в файле docs/SUPABASE.md.
+                Подключение к Supabase. Project URL — в разделе Settings → Data API, ключ —
+                в Settings → API Keys. Ключ <code>sb_secret_…</code> сюда вставлять нельзя.
+                Подробности — в файле docs/SUPABASE.md.
               </p>
               <div className="field">
                 <label htmlFor="sb-url">Project URL</label>
@@ -148,12 +150,12 @@ function StorageSection({
                 />
               </div>
               <div className="field">
-                <label htmlFor="sb-key">Anon key</label>
+                <label htmlFor="sb-key">Publishable key</label>
                 <input
                   id="sb-key"
                   className="input"
                   value={anonKey}
-                  placeholder="eyJhbGciOi…"
+                  placeholder="sb_publishable_…"
                   onChange={(event) => setAnonKey(event.target.value)}
                 />
               </div>
