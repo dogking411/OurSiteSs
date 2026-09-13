@@ -1,6 +1,6 @@
-import { useProfile } from './data/profile';
+import { usePerson } from './data/profile';
 import { useStore } from './data/store';
-import { otherPerson, PEOPLE, PERSON_IDS } from './data/schema';
+import { otherPerson, PEOPLE } from './data/schema';
 import { Link, useRoute } from './lib/router';
 import { HomePage } from './features/HomePage';
 import { WishlistPage } from './features/wishlist/WishlistPage';
@@ -20,7 +20,7 @@ const NAV = [
 
 export function App() {
   const route = useRoute();
-  const { person, setPerson } = useProfile();
+  const person = usePerson();
   const { wishes, error, clearError } = useStore();
   const partner = otherPerson(person);
 
@@ -57,17 +57,9 @@ export function App() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="person-switch" role="group" aria-label="Кто смотрит">
-            {PERSON_IDS.map((id) => (
-              <button
-                key={id}
-                type="button"
-                aria-pressed={person === id}
-                onClick={() => setPerson(id)}
-              >
-                {PEOPLE[id].name}
-              </button>
-            ))}
+          <div className="who-am-i">
+            <span className="who-dot" aria-hidden="true" />
+            Ты — {PEOPLE[person].name}
           </div>
         </div>
       </aside>

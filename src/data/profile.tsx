@@ -7,33 +7,25 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { PERSON_IDS, type PersonId } from './schema';
+import type { PersonId } from './schema';
 
 export type ThemeMode = 'dark' | 'light';
 
-const PERSON_KEY = 'sau:person';
 const THEME_KEY = 'sau:theme';
 
-interface ProfileValue {
-  /** Кто сейчас пользуется сайтом. Влияет на оформление и на дефолты форм. */
-  person: PersonId;
-  setPerson: (person: PersonId) => void;
+interface ThemeValue {
   theme: ThemeMode;
   setTheme: (theme: ThemeMode) => void;
 }
 
-const ProfileContext = createContext<ProfileValue | null>(null);
+const ThemeContext = createContext<ThemeValue | null>(null);
+const PersonContext = createContext<PersonId | null>(null);
 
 /**
- * Профиль намеренно хранится локально, а не в общей базе: это настройка
- * устройства («кто за этим экраном»), а не общие данные. Иначе переключение у
- * одного меняло бы интерфейс у другого.
+ * Тема — настройка устройства: на телефоне может быть тёмная, на ноутбуке
+ * светлая. Поэтому она и хранится в браузере, в отличие от личности.
  */
-export function ProfileProvider({ children }: { children: ReactNode }) {
-  const [person, setPersonState] = useState<PersonId>(() => {
-    const saved = localStorage.getItem(PERSON_KEY);
-    return PERSON_IDS.includes(saved as PersonId) ? (saved as PersonId) : 'sasha';
-  });
+export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem(THEME_KEY);
     if (saved === 'light' || saved === 'dark') return saved;
@@ -41,30 +33,40 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    document.documentElement.dataset.person = person;
     document.documentElement.dataset.theme = theme;
-  }, [person, theme]);
-
-  const setPerson = useCallback((next: PersonId) => {
-    localStorage.setItem(PERSON_KEY, next);
-    setPersonState(next);
-  }, []);
+  }, [theme]);
 
   const setTheme = useCallback((next: ThemeMode) => {
     localStorage.setItem(THEME_KEY, next);
     setThemeState(next);
   }, []);
 
-  const value = useMemo<ProfileValue>(
-    () => ({ person, setPerson, theme, setTheme }),
-    [person, setPerson, theme, setTheme],
-  );
-
-  return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;
+  const value = useMemo<ThemeValue>(() => ({ theme, setTheme }), [theme, setTheme]);
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
-export function useProfile(): ProfileValue {
-  const value = useContext(ProfileContext);
-  if (!value) throw new Error('useProfile вызван вне ProfileProvider');
+/**
+ * Личность приходит из аккаунта и дальше по приложению считается неизменной:
+ * переключателя «я сегодня Соня» нет и не должно быть. Провайдер только
+ * раздаёт её вниз и красит интерфейс в нужный цвет.
+ */
+export function ProfileProvider({ person, children }: { person: PersonId; children: ReactNode }) {
+  useEffect(() => {
+    document.documentElement.dataset.person = person;
+  }, [person]);
+
+  return <PersonContext.Provider value={person}>{children}</PersonContext.Provider>;
+}
+
+export function useTheme(): ThemeValue {
+  const value = useContext(ThemeContext);
+  if (!value) throw new Error('useTheme вызван вне ThemeProvider');
+  return value;
+}
+
+/** Кто сейчас пользуется сайтом. Доступно только внутри ProfileProvider. */
+export function usePerson(): PersonId {
+  const value = useContext(PersonContext);
+  if (!value) throw new Error('usePerson вызван вне ProfileProvider');
   return value;
 }

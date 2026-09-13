@@ -1,4 +1,4 @@
-import type { AppData, Moment, Plan, WishItem } from '../data/schema';
+import type { AppData, Moment, PersonId, Plan, WishItem } from '../data/schema';
 
 /**
  * Контракт хранилища.
@@ -26,6 +26,15 @@ export interface StorageAdapter {
   connect(credentials?: Credentials): Promise<void>;
   /** Выход и забывание сессии. */
   disconnect(): Promise<void>;
+
+  /**
+   * Закрепить за аккаунтом, кто это — Саша или Соня.
+   *
+   * Спрашивается один раз, при первом входе, и хранится в самом аккаунте.
+   * Поэтому личность одинакова на всех устройствах и не переключается тумблером
+   * в интерфейсе: «кто я» — свойство того, под кем вошли.
+   */
+  setPerson(person: PersonId): Promise<void>;
 
   list<K extends CollectionName>(collection: K): Promise<Row<K>[]>;
   /** Вставка или обновление по id. Возвращает то, что реально легло в хранилище. */
@@ -73,6 +82,14 @@ export interface Credentials {
 }
 
 export interface StorageStatus {
+  /**
+   * Хранилище закончило проверку сохранённой сессии.
+   *
+   * До этого момента нельзя утверждать, что человек не вошёл: проверка идёт
+   * асинхронно. Без этого флага сайт показывал бы форму входа на каждой
+   * загрузке, хотя сессия есть.
+   */
+  initialized: boolean;
   /** Можно читать и писать. */
   ready: boolean;
   /** Идёт вход или инициализация. */
@@ -80,6 +97,8 @@ export interface StorageStatus {
   signedIn: boolean;
   /** Email вошедшего — для показа в настройках. */
   account: string | null;
+  /** Кто вошёл. Хранится в аккаунте, а не на устройстве. */
+  person: PersonId | null;
   /** Последняя ошибка, сформулированная понятно для человека. */
   error: string | null;
 }

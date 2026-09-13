@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { emptyData, migrate, newId, type AppData } from '../data/schema';
+import { emptyData, migrate, newId, type AppData, type PersonId } from '../data/schema';
 import type {
   CollectionName,
   Credentials,
@@ -36,10 +36,14 @@ export class SupabaseAdapter implements StorageAdapter {
 
   private client: SupabaseClient | null = null;
   private status: StorageStatus = {
+    initialized: false,
     ready: false,
-    busy: false,
+    // Сразу занят: init() вот-вот проверит сохранённую сессию, и до её ответа
+    // нельзя показывать форму входа.
+    busy: true,
     signedIn: false,
     account: null,
+    person: null,
     error: null,
   };
   private listeners = new Set<(status: StorageStatus) => void>();
@@ -53,19 +57,18 @@ export class SupabaseAdapter implements StorageAdapter {
   }
 
   async init(): Promise<void> {
-    this.patchStatus({ busy: true, error: null });
     try {
       const client = await this.getClient();
       const { data } = await client.auth.getSession();
-      this.applySession(data.session?.user?.email ?? null);
+      this.applySession(data.session?.user ?? null);
       // Сессия продлевается сама по refresh-токену; ловим вход, выход и протухание.
       client.auth.onAuthStateChange((_event, session) => {
-        this.applySession(session?.user?.email ?? null);
+        this.applySession(session?.user ?? null);
       });
     } catch (error) {
       this.patchStatus({ error: describeError(error) });
     } finally {
-      this.patchStatus({ busy: false });
+      this.patchStatus({ busy: false, initialized: true });
     }
   }
 
@@ -99,7 +102,7 @@ export class SupabaseAdapter implements StorageAdapter {
         // Так бывает при включённом подтверждении адреса.
         throw new Error('Вход не завершён: подтверди адрес по ссылке из письма.');
       }
-      this.applySession(data.session.user.email ?? null);
+      this.applySession(data.session.user);
     } catch (error) {
       this.patchStatus({ error: describeError(error) });
       throw error;
@@ -112,6 +115,15 @@ export class SupabaseAdapter implements StorageAdapter {
     const client = await this.getClient();
     await client.auth.signOut();
     this.applySession(null);
+  }
+
+  async setPerson(person: PersonId): Promise<void> {
+    const client = await this.getClient();
+    // Личность живёт в метаданных аккаунта: она едет с человеком на любое
+    // устройство и не теряется при чистке браузера.
+    const { data, error } = await client.auth.updateUser({ data: { person } });
+    if (error) throw new Error(describeError(error));
+    this.applySession(data.user);
   }
 
   async list<K extends CollectionName>(collection: K): Promise<Row<K>[]> {
@@ -223,11 +235,13 @@ export class SupabaseAdapter implements StorageAdapter {
     return this.client;
   }
 
-  private applySession(email: string | null): void {
+  private applySession(user: { email?: string; user_metadata?: Record<string, unknown> } | null): void {
+    const person = user?.user_metadata?.person;
     this.patchStatus({
-      signedIn: email !== null,
-      ready: email !== null,
-      account: email,
+      signedIn: user !== null,
+      ready: user !== null,
+      account: user?.email ?? null,
+      person: person === 'sasha' || person === 'sonya' ? person : null,
       error: null,
     });
   }

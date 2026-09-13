@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { MediaImage } from '../../components/MediaImage';
-import { useProfile } from '../../data/profile';
+import { usePerson } from '../../data/profile';
 import { useStore } from '../../data/store';
 import {
   nowIso,
@@ -19,7 +19,7 @@ import {
 } from './wishHelpers';
 
 export function WishlistPage() {
-  const { person } = useProfile();
+  const person = usePerson();
   const { wishes, loading } = useStore();
   const [tab, setTab] = useState<PersonId>(person);
   const [showDone, setShowDone] = useState(false);

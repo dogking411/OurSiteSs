@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '../../components/Modal';
 import { MediaImage } from '../../components/MediaImage';
-import { useProfile } from '../../data/profile';
+import { usePerson } from '../../data/profile';
 import { useStore } from '../../data/store';
 import { newId, nowIso, PEOPLE, type PersonId, type WishItem, type WishPriority } from '../../data/schema';
 import { PRIORITY_LABELS, PRIORITY_OPTIONS } from './wishHelpers';
@@ -17,7 +17,7 @@ export function WishForm({
   onClose: () => void;
 }) {
   const { save, adapter } = useStore();
-  const { person } = useProfile();
+  const person = usePerson();
 
   const [title, setTitle] = useState(wish?.title ?? '');
   const [note, setNote] = useState(wish?.note ?? '');

@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useProfile } from '../../data/profile';
+import { usePerson, useTheme } from '../../data/profile';
 import { useStore } from '../../data/store';
-import { migrate, PEOPLE, PERSON_IDS } from '../../data/schema';
+import { migrate, PEOPLE } from '../../data/schema';
 
 export function SettingsPage() {
-  const { person, setPerson, theme, setTheme } = useProfile();
+  const person = usePerson();
+  const { theme, setTheme } = useTheme();
   const { status, disconnect, exportAll, importAll } = useStore();
 
   return (
@@ -15,26 +16,6 @@ export function SettingsPage() {
           <p className="page-sub">Кто сейчас смотрит и как выглядит сайт.</p>
         </div>
       </div>
-
-      <section className="card">
-        <h2>Кто ты</h2>
-        <p className="page-sub" style={{ margin: '6px 0 16px' }}>
-          От этого зависят цвета и то, чей вишлист открывается первым. Настройка живёт на
-          этом устройстве — у второго ничего не переключится.
-        </p>
-        <div className="person-switch" style={{ maxWidth: 320 }}>
-          {PERSON_IDS.map((id) => (
-            <button
-              key={id}
-              type="button"
-              aria-pressed={person === id}
-              onClick={() => setPerson(id)}
-            >
-              {PEOPLE[id].name}
-            </button>
-          ))}
-        </div>
-      </section>
 
       <section className="card">
         <h2>Оформление</h2>
@@ -57,12 +38,18 @@ export function SettingsPage() {
           Данные лежат в общем облаке: что сохранил один, сразу видит второй.
         </p>
         <div className="row">
-          <span className="tag tag-success">Вход выполнен: {status.account}</span>
+          <span className="tag tag-accent">Ты — {PEOPLE[person].name}</span>
+          <span className="tag">{status.account}</span>
           <span className="spacer" />
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => void disconnect()}>
             Выйти
           </button>
         </div>
+        <p className="page-sub" style={{ marginTop: 12 }}>
+          Имя закреплено за аккаунтом, а не за устройством, поэтому переключателя нет: под
+          своей почтой ты всегда Саша или всегда Соня. Сменить его можно только в панели
+          Supabase — как, написано в docs/SUPABASE.md.
+        </p>
       </section>
 
       <BackupSection exportAll={exportAll} importAll={importAll} />

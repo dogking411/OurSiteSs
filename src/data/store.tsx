@@ -16,7 +16,7 @@ import {
   type StorageAdapter,
   type StorageStatus,
 } from '../storage';
-import type { AppData, Moment, Plan, WishItem } from './schema';
+import type { AppData, Moment, PersonId, Plan, WishItem } from './schema';
 import { migrate } from './schema';
 
 interface Collections {
@@ -39,6 +39,8 @@ interface StoreValue extends Collections {
 
   connect: (credentials?: Credentials) => Promise<void>;
   disconnect: () => Promise<void>;
+  /** Закрепить за аккаунтом, кто это. Спрашивается один раз при первом входе. */
+  setPerson: (person: PersonId) => Promise<void>;
   reload: () => Promise<void>;
 
   save: <K extends CollectionName>(collection: K, row: Row<K>) => Promise<void>;
@@ -144,6 +146,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setData(EMPTY);
   }, [adapter]);
 
+  const setPerson = useCallback(
+    async (person: PersonId) => {
+      setError(null);
+      try {
+        await adapter.setPerson(person);
+      } catch (cause) {
+        setError(describe(cause));
+        throw cause;
+      }
+    },
+    [adapter],
+  );
+
   const save = useCallback(
     async <K extends CollectionName>(collection: K, row: Row<K>) => {
       // Оптимистично показываем изменение, откатываем при ошибке.
@@ -195,6 +210,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       status,
       connect,
       disconnect,
+      setPerson,
       reload: () => loadAll(adapter),
       save,
       remove,
@@ -212,6 +228,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       status,
       connect,
       disconnect,
+      setPerson,
       loadAll,
       save,
       remove,

@@ -1,8 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
-import { ProfileProvider } from './data/profile';
+import { ProfileProvider, ThemeProvider } from './data/profile';
 import { StoreProvider, useStore } from './data/store';
+import { ChoosePersonScreen } from './features/auth/ChoosePersonScreen';
 import { SetupScreen } from './features/auth/SetupScreen';
 import { SignInScreen } from './features/auth/SignInScreen';
 import { isCloudConfigured } from './storage';
@@ -10,15 +11,30 @@ import './styles/global.css';
 import './styles/components.css';
 
 /**
- * Три состояния запуска:
- *   нет ключей облака  -> экран первой настройки;
- *   ключи есть, входа нет -> экран входа;
- *   вошли -> сам сайт.
+ * Состояния запуска, по порядку:
+ *   нет ключей облака      -> экран первой настройки;
+ *   сессия ещё проверяется -> ожидание (иначе мигнёт форма входа, хотя вход есть);
+ *   не вошли               -> экран входа;
+ *   аккаунт без имени      -> одноразовый вопрос «кто ты»;
+ *   всё готово             -> сайт.
  */
 function Root() {
   const { status } = useStore();
-  if (status.busy && !status.signedIn) return <div className="gate">Загружаем…</div>;
-  return status.signedIn ? <App /> : <SignInScreen />;
+
+  if (!status.initialized) {
+    return <div className="gate">Загружаем…</div>;
+  }
+  if (!status.signedIn) {
+    return <SignInScreen />;
+  }
+  if (!status.person) {
+    return <ChoosePersonScreen />;
+  }
+  return (
+    <ProfileProvider person={status.person}>
+      <App />
+    </ProfileProvider>
+  );
 }
 
 const container = document.getElementById('root');
@@ -26,7 +42,7 @@ if (!container) throw new Error('Не найден корневой элемен
 
 createRoot(container).render(
   <StrictMode>
-    <ProfileProvider>
+    <ThemeProvider>
       {isCloudConfigured() ? (
         <StoreProvider>
           <Root />
@@ -34,6 +50,6 @@ createRoot(container).render(
       ) : (
         <SetupScreen />
       )}
-    </ProfileProvider>
+    </ThemeProvider>
   </StrictMode>,
 );

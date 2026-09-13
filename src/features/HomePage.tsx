@@ -1,11 +1,11 @@
-import { useProfile } from '../data/profile';
+import { usePerson } from '../data/profile';
 import { useStore } from '../data/store';
 import { otherPerson, PEOPLE } from '../data/schema';
 import { Link } from '../lib/router';
 import { visibleStatus } from './wishlist/wishHelpers';
 
 export function HomePage() {
-  const { person } = useProfile();
+  const person = usePerson();
   const { wishes, moments, loading } = useStore();
   const partner = otherPerson(person);
 

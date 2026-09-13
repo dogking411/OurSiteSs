@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Modal } from '../../components/Modal';
 import { MediaImage } from '../../components/MediaImage';
-import { useProfile } from '../../data/profile';
+import { usePerson } from '../../data/profile';
 import { useStore } from '../../data/store';
 import { newId, nowIso, today, type Moment } from '../../data/schema';
 
 /** Создание и правка момента. */
 export function MomentForm({ moment, onClose }: { moment: Moment | null; onClose: () => void }) {
   const { save, adapter } = useStore();
-  const { person } = useProfile();
+  const person = usePerson();
 
   const [title, setTitle] = useState(moment?.title ?? '');
   const [date, setDate] = useState(moment?.date ?? today());

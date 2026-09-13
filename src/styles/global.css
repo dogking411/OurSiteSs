@@ -67,6 +67,20 @@
 }
 
 /* --- Акценты профиля --- */
+
+/*
+ * Пока неизвестно, кто смотрит (экраны входа и первой настройки), берём
+ * нейтральный цвет — смесь двух личных. Ниже он подменяется, как только
+ * человек вошёл.
+ */
+:root {
+  --accent: #9a86ff;
+  --accent-soft: color-mix(in srgb, #9a86ff 18%, transparent);
+  --accent-text: #16112e;
+  --accent-glow: color-mix(in srgb, #9a86ff 40%, transparent);
+  --other-accent: #9a86ff;
+}
+
 :root[data-person='sasha'] {
   --accent: #6f8cff;
   --accent-soft: color-mix(in srgb, #6f8cff 18%, transparent);
