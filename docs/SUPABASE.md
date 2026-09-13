@@ -63,8 +63,10 @@ service_role» — прежний формат ключей, она не нуж�
 **Способ Б, правильный.** Положить в сборку:
 
 - локально — создать файл `.env` по образцу `.env.example`;
-- на GitHub — **Settings → Secrets and variables → Actions → New repository secret**,
-  добавить `VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY`.
+- на GitHub — **Settings → Secrets and variables → Actions → New repository secret**.
+  Там годится любой из двух вариантов: один секрет `SUPABASE`, в который целиком
+  вставлено содержимое `.env` (обе строки сразу), или два отдельных —
+  `VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY`. Сборка понимает оба.
 
 Тогда сайт подключается к облаку сам, остаётся только войти.
 

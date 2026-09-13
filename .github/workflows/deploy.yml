@@ -29,13 +29,37 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run build
+      # Настройки облака задаются в Settings -> Secrets and variables -> Actions
+      # одним из двух способов, на выбор:
+      #
+      #   SUPABASE               — целиком содержимое .env, обеими строками сразу;
+      #   VITE_SUPABASE_URL
+      #   VITE_SUPABASE_ANON_KEY — либо два отдельных секрета.
+      #
+      # Если секретов нет вообще, сайт соберётся и будет работать: адрес и ключ
+      # можно ввести прямо в настройках на странице.
+      - name: Собрать .env из секретов
         env:
-          # Задаются в Settings -> Secrets and variables -> Actions.
-          # Если их нет, сайт соберётся и будет работать в локальном режиме:
-          # адрес и ключ можно ввести прямо в настройках на странице.
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SUPABASE_ENV: ${{ secrets.SUPABASE }}
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -n "$SUPABASE_ENV" ]; then
+            # tr убирает возврат каретки: секрет мог быть скопирован из Windows,
+            # и \r иначе приклеился бы к адресу, сделав его нерабочим.
+            printf '%s\n' "$SUPABASE_ENV" | tr -d '\r' > .env
+          elif [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_KEY" ]; then
+            printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_ANON_KEY=%s\n' \
+              "$SUPABASE_URL" "$SUPABASE_KEY" > .env
+          else
+            echo 'Секреты не заданы — сайт соберётся без настроек облака.'
+          fi
+          # Проверяем результат, не показывая значения.
+          if [ -f .env ]; then
+            grep -c '^VITE_SUPABASE_' .env | xargs -I {} echo 'Переменных облака в .env: {}'
+          fi
+
+      - run: npm run build
 
       - uses: actions/upload-pages-artifact@v3
         with:
