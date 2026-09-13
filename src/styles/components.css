@@ -1,0 +1,221 @@
+/* Стили конкретных экранов. Общие токены и каркас — в global.css. */
+
+/* ---------- Плитки на главной ---------- */
+
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--space-3);
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text);
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.tile:hover {
+  border-color: var(--accent);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.tile-value {
+  font-size: 30px;
+  font-weight: 680;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+}
+
+.tile-label {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.35;
+}
+
+/* ---------- Вишлист ---------- */
+
+.wish-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.wish-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.wish-card:hover {
+  border-color: var(--border-strong);
+}
+
+.wish-card.is-done {
+  opacity: 0.6;
+}
+
+.wish-image {
+  aspect-ratio: 16 / 10;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.wish-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.wish-body {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.wish-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.wish-note {
+  font-size: 14px;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+}
+
+.wish-link {
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.wish-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+/* ---------- Моменты ---------- */
+
+.moment-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.moment-card {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.moment-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  padding-top: 2px;
+}
+
+.moment-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.moment-text {
+  font-size: 14px;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+}
+
+.moment-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+}
+
+.moment-photos img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius);
+  display: block;
+}
+
+/* ---------- Загрузка картинок ---------- */
+
+.thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  display: block;
+}
+
+.thumb-wrap {
+  position: relative;
+}
+
+.thumb-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+
+/* ---------- Списки в заглушках ---------- */
+
+.plan-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+button.tag {
+  cursor: pointer;
+}
+
+@media (max-width: 860px) {
+  .moment-card {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+    padding: var(--space-4);
+  }
+}

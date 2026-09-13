@@ -1,0 +1,589 @@
+/*
+ * Оформление построено на токенах. Профиль (Саша / Соня) меняет только
+ * акцентную группу переменных, тёмная и светлая тема — только группу фонов.
+ * Поэтому компоненты не знают ни про людей, ни про тему: они используют
+ * var(--accent) и var(--surface) и выглядят правильно в любой комбинации.
+ */
+
+:root {
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 22px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.18);
+  --shadow-2: 0 8px 28px -12px rgb(0 0 0 / 0.45);
+
+  --nav-height: 64px;
+  --sidebar-width: 232px;
+
+  color-scheme: dark;
+}
+
+/* --- Тёмная тема (по умолчанию) --- */
+:root,
+:root[data-theme='dark'] {
+  --bg: #131118;
+  --surface: #1c1a22;
+  --surface-2: #24212c;
+  --surface-hover: #2c2836;
+  --border: #332f3d;
+  --border-strong: #454054;
+
+  --text: #f2eff7;
+  --text-dim: #a9a2b8;
+  --text-faint: #75708a;
+
+  --danger: #ff6b7a;
+  --success: #58d6a0;
+  color-scheme: dark;
+}
+
+/* --- Светлая тема --- */
+:root[data-theme='light'] {
+  --bg: #faf7fb;
+  --surface: #ffffff;
+  --surface-2: #f4f0f7;
+  --surface-hover: #ece7f2;
+  --border: #e3dded;
+  --border-strong: #cdc5da;
+
+  --text: #1d1a24;
+  --text-dim: #635d72;
+  --text-faint: #8d869d;
+
+  --danger: #d6455a;
+  --success: #1f9f74;
+  color-scheme: light;
+}
+
+/* --- Акценты профиля --- */
+:root[data-person='sasha'] {
+  --accent: #6f8cff;
+  --accent-soft: color-mix(in srgb, #6f8cff 18%, transparent);
+  --accent-text: #0f1330;
+  --accent-glow: color-mix(in srgb, #6f8cff 40%, transparent);
+}
+
+:root[data-person='sonya'] {
+  --accent: #ff7fae;
+  --accent-soft: color-mix(in srgb, #ff7fae 18%, transparent);
+  --accent-text: #33101f;
+  --accent-glow: color-mix(in srgb, #ff7fae 40%, transparent);
+}
+
+/* Цвет другого человека — для меток «чьё это». */
+:root[data-person='sasha'] {
+  --other-accent: #ff7fae;
+}
+:root[data-person='sonya'] {
+  --other-accent: #6f8cff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: 28px;
+}
+h2 {
+  font-size: 20px;
+}
+h3 {
+  font-size: 16px;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* ---------- Каркас ---------- */
+
+.app {
+  min-height: 100%;
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: var(--space-5) var(--space-4);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  background: linear-gradient(135deg, var(--accent), var(--other-accent));
+  box-shadow: 0 4px 16px -6px var(--accent-glow);
+}
+
+.brand-title {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.brand-sub {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px var(--space-3);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+
+.nav-link:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.nav-link[aria-current='page'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.nav-icon {
+  width: 20px;
+  text-align: center;
+  font-size: 16px;
+}
+
+.nav-badge {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-faint);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.main {
+  min-width: 0;
+  padding: var(--space-6) var(--space-6) var(--space-7);
+}
+
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.page-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.page-sub {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+/* ---------- Переключатель профиля ---------- */
+
+.person-switch {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.person-switch button {
+  flex: 1;
+  padding: 8px var(--space-3);
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-dim);
+  font-weight: 550;
+  font-size: 13px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.person-switch button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-text);
+  box-shadow: 0 2px 10px -4px var(--accent-glow);
+}
+
+/* ---------- Общие элементы ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 9px var(--space-4);
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+  font-size: 14px;
+  transition: filter 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  filter: brightness(1.08);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none;
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.btn-ghost:hover {
+  background: var(--surface-hover);
+  filter: none;
+}
+
+.btn-quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-dim);
+  padding: 6px var(--space-2);
+}
+
+.btn-quiet:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  filter: none;
+}
+
+.btn-danger {
+  background: transparent;
+  border-color: transparent;
+  color: var(--danger);
+}
+
+.btn-danger:hover {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  filter: none;
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  padding: 10px var(--space-3);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 550;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+.tag-accent {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: transparent;
+}
+
+.tag-success {
+  background: color-mix(in srgb, var(--success) 16%, transparent);
+  color: var(--success);
+  border-color: transparent;
+}
+
+.empty {
+  padding: var(--space-7) var(--space-5);
+  text-align: center;
+  color: var(--text-faint);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.empty-emoji {
+  font-size: 32px;
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+  color: var(--text);
+  font-size: 14px;
+}
+
+/* ---------- Модальное окно ---------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  z-index: 50;
+}
+
+.modal {
+  width: min(560px, 100%);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* ---------- Мобильная раскладка ---------- */
+
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    top: auto;
+    left: 0;
+    right: 0;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    padding: var(--space-2);
+    border-right: none;
+    border-top: 1px solid var(--border);
+    z-index: 40;
+    gap: 0;
+  }
+
+  .brand,
+  .sidebar-footer {
+    display: none;
+  }
+
+  .nav {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  .nav-link {
+    flex-direction: column;
+    gap: 2px;
+    font-size: 10px;
+    padding: 6px 4px;
+    flex: 1;
+    text-align: center;
+  }
+
+  .nav-badge {
+    display: none;
+  }
+
+  .main {
+    padding: var(--space-4) var(--space-4) calc(var(--nav-height) + var(--space-6));
+  }
+
+  h1 {
+    font-size: 23px;
+  }
+
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
