@@ -10,13 +10,10 @@ import {
 } from 'react';
 import {
   createAdapter,
-  readStorageMode,
-  writeStorageMode,
   type CollectionName,
   type Credentials,
   type Row,
   type StorageAdapter,
-  type StorageKind,
   type StorageStatus,
 } from '../storage';
 import type { AppData, Moment, Plan, WishItem } from './schema';
@@ -38,11 +35,8 @@ interface StoreValue extends Collections {
   clearError: () => void;
 
   adapter: StorageAdapter;
-  storageMode: StorageKind;
   status: StorageStatus;
 
-  /** Переключить режим хранилища. Адаптер пересоздаётся, данные перечитываются. */
-  setStorageMode: (mode: StorageKind) => void;
   connect: (credentials?: Credentials) => Promise<void>;
   disconnect: () => Promise<void>;
   reload: () => Promise<void>;
@@ -57,8 +51,8 @@ interface StoreValue extends Collections {
 const StoreContext = createContext<StoreValue | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [storageMode, setStorageModeState] = useState<StorageKind>(() => readStorageMode());
-  const [adapter, setAdapter] = useState<StorageAdapter>(() => createAdapter());
+  // Хранилище одно и на весь сеанс: пересоздавать адаптер больше незачем.
+  const [adapter] = useState<StorageAdapter>(() => createAdapter());
   const [status, setStatus] = useState<StorageStatus>(() => adapter.getStatus());
   const [data, setData] = useState<Collections>(EMPTY);
   const [loading, setLoading] = useState(true);
@@ -132,18 +126,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => offs.forEach((off) => off());
   }, [adapter, status.ready, loadAll]);
 
-  const setStorageMode = useCallback((mode: StorageKind) => {
-    writeStorageMode(mode);
-    setStorageModeState(mode);
-    setData(EMPTY);
-    const next = createAdapter(mode);
-    setAdapter(next);
-    // Статус берём у нового адаптера сразу. Иначе до первого эффекта интерфейс
-    // показывал бы чужой статус — например, «вход выполнен» от локального
-    // хранилища на экране облака, которое ещё не подключено.
-    setStatus(next.getStatus());
-  }, []);
-
   const connect = useCallback(
     async (credentials?: Credentials) => {
       setError(null);
@@ -210,9 +192,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       error,
       clearError: () => setError(null),
       adapter,
-      storageMode,
       status,
-      setStorageMode,
       connect,
       disconnect,
       reload: () => loadAll(adapter),
@@ -229,9 +209,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       adapter,
-      storageMode,
       status,
-      setStorageMode,
       connect,
       disconnect,
       loadAll,

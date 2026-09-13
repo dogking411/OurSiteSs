@@ -1,19 +1,22 @@
-import { LocalAdapter } from './localAdapter';
 import { SupabaseAdapter, type SupabaseConfig } from './supabaseAdapter';
-import type { StorageAdapter, StorageKind } from './types';
+import type { StorageAdapter } from './types';
 
 export * from './types';
 
-const MODE_KEY = 'sau:storage-mode';
 const CONFIG_KEY = 'sau:supabase-config';
 
 /**
  * Выбор и создание хранилища.
  *
- * Настройки Supabase берутся из переменных сборки (.env / секреты GitHub), а
- * если их нет — из localStorage, куда их можно ввести прямо в настройках сайта.
- * Второй путь удобен, пока проект ещё не подключён к CI: не надо пересобирать
- * сайт ради смены ключа.
+ * Хранилище одно — общее облако. Локального режима нет намеренно: сайт для
+ * двоих, и данные, лежащие в одном браузере, означали бы, что у каждого свой
+ * отдельный архив. Слой StorageAdapter при этом сохранён — он нужен для
+ * переезда на собственный сервер (см. docs/ARCHITECTURE.md).
+ *
+ * Настройки берутся из переменных сборки (.env / секреты GitHub), а если их
+ * нет — из localStorage, куда их можно ввести на экране первой настройки.
+ * Второй путь выручает, пока сайт ещё не подключён к CI: не надо пересобирать
+ * его ради смены ключа.
  */
 export function readSupabaseConfig(): SupabaseConfig | null {
   const fromEnv: SupabaseConfig = {
@@ -28,7 +31,7 @@ export function readSupabaseConfig(): SupabaseConfig | null {
     const parsed = JSON.parse(raw) as Partial<SupabaseConfig>;
     if (parsed.url && parsed.anonKey) return { url: parsed.url, anonKey: parsed.anonKey };
   } catch {
-    // Битую настройку просто игнорируем — останемся в локальном режиме.
+    // Битую настройку игнорируем — покажем экран первой настройки.
   }
   return null;
 }
@@ -38,34 +41,24 @@ export function writeSupabaseConfig(config: SupabaseConfig | null): void {
   else localStorage.removeItem(CONFIG_KEY);
 }
 
-/** Заданы ли ключи через сборку — тогда в настройках поля только для чтения. */
+/** Заданы ли ключи при сборке — тогда менять их на странице нельзя. */
 export function isConfigFromEnv(): boolean {
   return Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
 }
 
-export function readStorageMode(): StorageKind {
-  const saved = localStorage.getItem(MODE_KEY);
-  return saved === 'supabase' || saved === 'local' ? saved : 'local';
-}
-
-export function writeStorageMode(mode: StorageKind): void {
-  localStorage.setItem(MODE_KEY, mode);
+/** Готов ли сайт к работе. Если нет — показывается экран первой настройки. */
+export function isCloudConfigured(): boolean {
+  return readSupabaseConfig() !== null;
 }
 
 /**
- * Создаёт адаптер под выбранный режим. Если облако выбрано, но не настроено,
- * молча откатываемся на локальный режим — сайт должен открываться всегда.
+ * Создаёт адаптер. Вызывать только когда isCloudConfigured() вернул true —
+ * иначе конструктор бросит StorageConfigError.
  */
-export function createAdapter(mode: StorageKind = readStorageMode()): StorageAdapter {
-  if (mode === 'supabase') {
-    const config = readSupabaseConfig();
-    if (config) {
-      try {
-        return new SupabaseAdapter(config);
-      } catch {
-        return new LocalAdapter();
-      }
-    }
+export function createAdapter(): StorageAdapter {
+  const config = readSupabaseConfig();
+  if (!config) {
+    throw new Error('Облако не настроено: нет адреса проекта или ключа.');
   }
-  return new LocalAdapter();
+  return new SupabaseAdapter(config);
 }

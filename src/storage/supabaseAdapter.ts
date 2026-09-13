@@ -26,8 +26,8 @@ export interface SupabaseConfig {
  * публичный anon-ключ в собранном сайте — это нормально: без входа он не даёт
  * доступа к данным.
  *
- * Клиент supabase-js подгружается динамически, чтобы локальный режим не тащил
- * его в основной бандл.
+ * Клиент supabase-js подгружается динамически: экраны входа и первой настройки
+ * открываются, не дожидаясь его загрузки.
  */
 export class SupabaseAdapter implements StorageAdapter {
   readonly kind = 'supabase' as const;

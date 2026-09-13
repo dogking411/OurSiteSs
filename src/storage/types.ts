@@ -22,7 +22,7 @@ export interface StorageAdapter {
 
   /** Восстановление сессии, открытие БД. Вызывается один раз при старте. */
   init(): Promise<void>;
-  /** Вход. Для локального адаптера — no-op. */
+  /** Вход. Адаптеру без авторизации достаточно пустой реализации. */
   connect(credentials?: Credentials): Promise<void>;
   /** Выход и забывание сессии. */
   disconnect(): Promise<void>;
@@ -52,7 +52,7 @@ export interface StorageAdapter {
   importAll(data: AppData): Promise<void>;
 }
 
-export type StorageKind = 'local' | 'supabase' | 'server';
+export type StorageKind = 'supabase' | 'server';
 
 export type CollectionName = 'wishes' | 'moments' | 'plans';
 

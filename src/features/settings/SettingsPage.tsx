@@ -2,24 +2,17 @@ import { useState } from 'react';
 import { useProfile } from '../../data/profile';
 import { useStore } from '../../data/store';
 import { migrate, PEOPLE, PERSON_IDS } from '../../data/schema';
-import {
-  isConfigFromEnv,
-  readSupabaseConfig,
-  writeSupabaseConfig,
-  type StorageKind,
-} from '../../storage';
 
 export function SettingsPage() {
   const { person, setPerson, theme, setTheme } = useProfile();
-  const { storageMode, setStorageMode, status, connect, disconnect, adapter, exportAll, importAll } =
-    useStore();
+  const { status, disconnect, exportAll, importAll } = useStore();
 
   return (
     <div className="page">
       <div className="page-head">
         <div className="page-title-group">
           <h1>Настройки</h1>
-          <p className="page-sub">Кто сейчас смотрит, как выглядит сайт и где лежат данные.</p>
+          <p className="page-sub">Кто сейчас смотрит и как выглядит сайт.</p>
         </div>
       </div>
 
@@ -58,187 +51,22 @@ export function SettingsPage() {
         </div>
       </section>
 
-      <StorageSection
-        storageMode={storageMode}
-        setStorageMode={setStorageMode}
-        status={status}
-        connect={connect}
-        disconnect={disconnect}
-        adapterLabel={adapter.label}
-      />
+      <section className="card">
+        <h2>Аккаунт</h2>
+        <p className="page-sub" style={{ margin: '6px 0 16px' }}>
+          Данные лежат в общем облаке: что сохранил один, сразу видит второй.
+        </p>
+        <div className="row">
+          <span className="tag tag-success">Вход выполнен: {status.account}</span>
+          <span className="spacer" />
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => void disconnect()}>
+            Выйти
+          </button>
+        </div>
+      </section>
 
       <BackupSection exportAll={exportAll} importAll={importAll} />
     </div>
-  );
-}
-
-function StorageSection({
-  storageMode,
-  setStorageMode,
-  status,
-  connect,
-  disconnect,
-  adapterLabel,
-}: {
-  storageMode: StorageKind;
-  setStorageMode: (mode: StorageKind) => void;
-  status: ReturnType<typeof useStore>['status'];
-  connect: ReturnType<typeof useStore>['connect'];
-  disconnect: ReturnType<typeof useStore>['disconnect'];
-  adapterLabel: string;
-}) {
-  const envConfigured = isConfigFromEnv();
-  const saved = readSupabaseConfig();
-  const [url, setUrl] = useState(saved?.url ?? '');
-  const [anonKey, setAnonKey] = useState(saved?.anonKey ?? '');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [signUp, setSignUp] = useState(false);
-  const [savedNotice, setSavedNotice] = useState(false);
-
-  const configured = Boolean(saved);
-
-  return (
-    <section className="card">
-      <h2>Где хранятся данные</h2>
-      <p className="page-sub" style={{ margin: '6px 0 16px' }}>
-        Сейчас: {adapterLabel}
-        {status.account ? ` · ${status.account}` : ''}
-      </p>
-
-      <div className="person-switch" style={{ maxWidth: 420 }}>
-        <button
-          type="button"
-          aria-pressed={storageMode === 'local'}
-          onClick={() => setStorageMode('local')}
-        >
-          Этот браузер
-        </button>
-        <button
-          type="button"
-          aria-pressed={storageMode === 'supabase'}
-          onClick={() => setStorageMode('supabase')}
-        >
-          Общее облако
-        </button>
-      </div>
-
-      {storageMode === 'local' ? (
-        <p className="page-sub" style={{ marginTop: 16 }}>
-          Данные лежат только в этом браузере и никуда не уходят. Между твоим телефоном и
-          Сониным ноутбуком ничего не синхронизируется — для этого нужно облако.
-        </p>
-      ) : (
-        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {envConfigured ? (
-            <p className="page-sub">Адрес и ключ заданы при сборке сайта.</p>
-          ) : (
-            <>
-              <p className="page-sub">
-                Подключение к Supabase. Project URL — в разделе Settings → Data API, ключ —
-                в Settings → API Keys. Ключ <code>sb_secret_…</code> сюда вставлять нельзя.
-                Подробности — в файле docs/SUPABASE.md.
-              </p>
-              <div className="field">
-                <label htmlFor="sb-url">Project URL</label>
-                <input
-                  id="sb-url"
-                  className="input"
-                  value={url}
-                  placeholder="https://xxxx.supabase.co"
-                  onChange={(event) => setUrl(event.target.value)}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="sb-key">Publishable key</label>
-                <input
-                  id="sb-key"
-                  className="input"
-                  value={anonKey}
-                  placeholder="sb_publishable_…"
-                  onChange={(event) => setAnonKey(event.target.value)}
-                />
-              </div>
-              <div className="row">
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    writeSupabaseConfig(url && anonKey ? { url: url.trim(), anonKey: anonKey.trim() } : null);
-                    setSavedNotice(true);
-                    // Пересоздаём адаптер с новыми ключами.
-                    setStorageMode('supabase');
-                  }}
-                >
-                  Сохранить ключи
-                </button>
-                {savedNotice ? <span className="tag tag-success">Сохранено</span> : null}
-              </div>
-            </>
-          )}
-
-          {configured || envConfigured ? (
-            status.signedIn ? (
-              <div className="row">
-                <span className="tag tag-success">Вход выполнен: {status.account}</span>
-                <span className="spacer" />
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => void disconnect()}>
-                  Выйти
-                </button>
-              </div>
-            ) : (
-              <form
-                style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void connect({ email, password, signUp }).catch(() => undefined);
-                }}
-              >
-                <div className="grid-2">
-                  <div className="field">
-                    <label htmlFor="sb-email">Email</label>
-                    <input
-                      id="sb-email"
-                      type="email"
-                      className="input"
-                      value={email}
-                      autoComplete="username"
-                      onChange={(event) => setEmail(event.target.value)}
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="sb-password">Пароль</label>
-                    <input
-                      id="sb-password"
-                      type="password"
-                      className="input"
-                      value={password}
-                      autoComplete="current-password"
-                      onChange={(event) => setPassword(event.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="row">
-                  <label className="row" style={{ gap: 6, fontSize: 13, color: 'var(--text-dim)' }}>
-                    <input
-                      type="checkbox"
-                      checked={signUp}
-                      onChange={(event) => setSignUp(event.target.checked)}
-                    />
-                    Это первый вход, создать аккаунт
-                  </label>
-                  <span className="spacer" />
-                  <button type="submit" className="btn" disabled={status.busy}>
-                    {status.busy ? 'Входим…' : signUp ? 'Создать аккаунт' : 'Войти'}
-                  </button>
-                </div>
-                {status.error ? <div className="banner">{status.error}</div> : null}
-              </form>
-            )
-          ) : null}
-        </div>
-      )}
-    </section>
   );
 }
 
@@ -276,8 +104,8 @@ function BackupSection({
     <section className="card">
       <h2>Резервная копия</h2>
       <p className="page-sub" style={{ margin: '6px 0 16px' }}>
-        Выгрузка в JSON — она же способ перенести данные между локальным режимом и облаком,
-        а потом и на свой сервер. Картинки в файл не попадают.
+        Выгрузка в JSON — страховка на случай, если с облаком что-то случится, и способ
+        однажды переехать на свой сервер. Картинки в файл не попадают.
       </p>
       <div className="row">
         <button type="button" className="btn btn-ghost" onClick={() => void handleExport()}>
