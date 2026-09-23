@@ -145,6 +145,11 @@ function Harness() {
   return (
     <StoreContext.Provider value={store}>
       <ProfileProvider person="sasha">
+        {/* Чтобы стенд нельзя было принять за настоящий сайт: здесь данные
+            выдуманные, живут в памяти и пропадают при перезагрузке. */}
+        <div className="preview-flag">
+          Стенд разработки · данные выдуманные и не сохраняются
+        </div>
         <div className="app">
           <aside className="sidebar">
             <nav className="nav">

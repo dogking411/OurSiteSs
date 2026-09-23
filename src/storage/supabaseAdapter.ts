@@ -62,8 +62,17 @@ export class SupabaseAdapter implements StorageAdapter {
       const { data } = await client.auth.getSession();
       this.applySession(data.session?.user ?? null);
       // Сессия продлевается сама по refresh-токену; ловим вход, выход и протухание.
-      client.auth.onAuthStateChange((_event, session) => {
-        this.applySession(session?.user ?? null);
+      client.auth.onAuthStateChange((event, session) => {
+        if (session) {
+          this.applySession(session.user);
+          return;
+        }
+        // Пустая сессия — ещё не повод считать, что человек вышел. Клиент
+        // присылает её и при разовой неудаче продления токена: уснула вкладка,
+        // моргнула сеть. Раньше сайт принимал это за выход и обнулял списки,
+        // а починить это могла только перезагрузка страницы, потому что сессия
+        // на самом деле оставалась живой. Верим только явному выходу.
+        if (event === 'SIGNED_OUT') this.applySession(null);
       });
     } catch (error) {
       this.patchStatus({ error: describeError(error) });

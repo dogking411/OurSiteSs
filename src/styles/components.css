@@ -424,3 +424,23 @@ a.plan-line:hover {
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
+
+/* Метка стенда разработки (preview.html). В сайте не встречается. */
+.preview-flag {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 4px var(--space-4);
+  background: #b45309;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.preview-flag ~ .app .sidebar,
+.preview-flag ~ .app .main {
+  padding-top: var(--space-6);
+}

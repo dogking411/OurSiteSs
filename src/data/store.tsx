@@ -75,7 +75,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     async (source: StorageAdapter) => {
       const token = ++loadToken.current;
       if (!source.getStatus().ready) {
-        setData(EMPTY);
+        // Раньше здесь стояло обнуление списков, и любая заминка с токеном
+        // стирала всё с экрана. Показанное не трогаем: при выходе данные
+        // очищает disconnect, а до входа их всё равно нет.
         setLoading(false);
         return;
       }
@@ -120,6 +122,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void loadAll(adapter);
   }, [adapter, status.ready, loadAll]);
+
+  // Возвращение на вкладку — повод перечитать данные. Пока вкладка спала,
+  // можно было пропустить чужую правку или не достучаться до сети, и лучше
+  // обновиться самим, чем ждать, пока человек догадается нажать F5.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && adapter.getStatus().ready) {
+        void loadAll(adapter);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('online', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('online', onVisible);
+    };
+  }, [adapter, loadAll]);
 
   // Чужие изменения: другая вкладка или второй человек в облаке.
   useEffect(() => {
