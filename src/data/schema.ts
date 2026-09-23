@@ -5,7 +5,7 @@
  * резервные копии и файлы, выгруженные раньше, должны открываться всегда.
  */
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /** Кто пользуется сайтом. Профиль влияет на тему и на «чей» вишлист по умолчанию. */
 export type PersonId = 'sasha' | 'sonya';
@@ -63,24 +63,95 @@ export interface Moment {
   createdBy: PersonId;
 }
 
-/**
- * Планы. Инструмент планирования пока заглушка, но форма данных задана сразу,
- * чтобы потом не мигрировать уже накопленные записи.
- */
-export type PlanStatus = 'idea' | 'planned' | 'done' | 'dropped';
+/** Три вида планов. Каждый живёт на своей вкладке раздела. */
+export type PlanKind = 'place' | 'watch' | 'food';
 
+export const PLAN_KINDS: PlanKind[] = ['place', 'watch', 'food'];
+
+export const PLAN_KIND_LABELS: Record<PlanKind, { tab: string; one: string; icon: string }> = {
+  place: { tab: 'Места', one: 'Место', icon: '📍' },
+  watch: { tab: 'Посмотреть', one: 'Что посмотреть', icon: '🎬' },
+  food: { tab: 'Еда', one: 'Еда', icon: '🍜' },
+};
+
+/** Откуда берётся еда: идём в кафе, заказываем или готовим сами. */
+export type FoodKind = 'cafe' | 'delivery' | 'cook';
+
+export const FOOD_KINDS: FoodKind[] = ['cafe', 'delivery', 'cook'];
+
+export const FOOD_KIND_LABELS: Record<FoodKind, string> = {
+  cafe: 'В кафе',
+  delivery: 'Заказать',
+  cook: 'Приготовить',
+};
+
+/**
+ * План — то, что мы хотим сделать вместе.
+ *
+ * Все три вида лежат в одной коллекции и различаются полем kind. Заводить три
+ * таблицы ради трёх наборов полей не стоит: общего у них больше, чем различий —
+ * автор, название, примечание, отметка «сделано», — а различия это несколько
+ * полей, которые для остальных видов просто пустые. Какие поля к какому виду
+ * относятся, знает форма (PlanForm) и подсказывают комментарии ниже.
+ */
 export interface Plan {
   id: string;
+  kind: PlanKind;
+  /** Кто предложил: план «от Саши» или «от Сони». */
+  owner: PersonId;
   title: string;
+  /** Примечание: чем приглянулось место, о чём фильм, что за блюдо. */
   note: string;
-  /** Желаемая дата (YYYY-MM-DD) или пусто, если «когда-нибудь». */
-  date: string;
-  status: PlanStatus;
-  /** Кого касается. */
-  who: PersonId | 'both';
+
+  /** Сделано: были, посмотрели, попробовали. */
+  done: boolean;
+  /** Когда отметили сделанным. Пусто, пока не отмечено. */
+  doneAt: string;
+  /** Момент архива, созданный при отметке места. */
+  momentId: string | null;
+
+  /** Адрес — у мест и у кафе. */
+  address: string;
+  /** Жанр — у «посмотреть». */
+  genre: string;
+  /** Ссылка — трейлер, страница заведения, рецепт в интернете. */
+  url: string;
+  /** Что за еда. Заполнено только у kind === 'food'. */
+  foodKind: FoodKind | null;
+  /** Где заказать — у доставки. */
+  vendor: string;
+  /** Рецепт — у «приготовить». */
+  recipe: string;
+
+  imageIds: string[];
   createdAt: string;
   updatedAt: string;
   createdBy: PersonId;
+}
+
+/** Заготовка нового плана: все поля заполнены, пустые — пустыми строками. */
+export function emptyPlan(kind: PlanKind, owner: PersonId, author: PersonId): Plan {
+  const now = nowIso();
+  return {
+    id: newId('plan'),
+    kind,
+    owner,
+    title: '',
+    note: '',
+    done: false,
+    doneAt: '',
+    momentId: null,
+    address: '',
+    genre: '',
+    url: '',
+    foodKind: kind === 'food' ? 'cafe' : null,
+    vendor: '',
+    recipe: '',
+    imageIds: [],
+    createdAt: now,
+    updatedAt: now,
+    createdBy: author,
+  };
 }
 
 /** Полный снимок данных — используется для экспорта, импорта и переезда. */
@@ -111,15 +182,30 @@ export function migrate(raw: unknown): AppData {
   if (!raw || typeof raw !== 'object') return emptyData();
   const input = raw as Partial<AppData>;
 
-  // Сюда добавляются шаги миграции:
-  // if ((input.schemaVersion ?? 0) < 2) { ... }
-
   return {
     schemaVersion: SCHEMA_VERSION,
     exportedAt: typeof input.exportedAt === 'string' ? input.exportedAt : new Date().toISOString(),
     wishes: pickRows<WishItem>(input.wishes),
     moments: pickRows<Moment>(input.moments),
-    plans: pickRows<Plan>(input.plans),
+    // Версия 1 знала планы совсем другой формы — с полями status, who и date,
+    // но без вида, автора и подробностей. Недостающее достраиваем, лишнее
+    // отбрасываем: пусть старая выгрузка откроется, пусть и небогатой.
+    plans: pickRows<Partial<Plan> & { id: string }>(input.plans).map(normalizePlan),
+  };
+}
+
+function normalizePlan(row: Partial<Plan> & { id: string }): Plan {
+  const kind: PlanKind = PLAN_KINDS.includes(row.kind as PlanKind) ? (row.kind as PlanKind) : 'place';
+  const owner: PersonId = row.owner === 'sonya' ? 'sonya' : 'sasha';
+  return {
+    ...emptyPlan(kind, owner, row.createdBy === 'sonya' ? 'sonya' : 'sasha'),
+    ...row,
+    id: row.id,
+    kind,
+    owner,
+    foodKind: FOOD_KINDS.includes(row.foodKind as FoodKind) ? (row.foodKind as FoodKind) : null,
+    imageIds: Array.isArray(row.imageIds) ? row.imageIds : [],
+    done: row.done === true,
   };
 }
 

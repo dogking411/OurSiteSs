@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MediaImage } from '../../components/MediaImage';
+import { MediaImage, usePhotoViewer } from '../../components/MediaImage';
 import { usePerson } from '../../data/profile';
 import { useStore } from '../../data/store';
 import {
@@ -25,6 +25,7 @@ export function WishlistPage() {
   const [showDone, setShowDone] = useState(false);
   const [editing, setEditing] = useState<WishItem | null>(null);
   const [creating, setCreating] = useState(false);
+  const photos = usePhotoViewer();
 
   const partner = otherPerson(person);
   const isOwnList = tab === person;
@@ -103,10 +104,18 @@ export function WishlistPage() {
       ) : (
         <div className="wish-grid">
           {items.map((wish) => (
-            <WishCard key={wish.id} wish={wish} viewer={person} onEdit={() => setEditing(wish)} />
+            <WishCard
+              key={wish.id}
+              wish={wish}
+              viewer={person}
+              onEdit={() => setEditing(wish)}
+              onOpenPhoto={photos.open}
+            />
           ))}
         </div>
       )}
+
+      {photos.viewer}
 
       {creating ? <WishForm owner={tab} wish={null} onClose={() => setCreating(false)} /> : null}
       {editing ? (
@@ -120,10 +129,12 @@ function WishCard({
   wish,
   viewer,
   onEdit,
+  onOpenPhoto,
 }: {
   wish: WishItem;
   viewer: PersonId;
   onEdit: () => void;
+  onOpenPhoto: (mediaId: string, alt: string) => void;
 }) {
   const { save, remove } = useStore();
   const status = visibleStatus(wish, viewer);
@@ -139,7 +150,11 @@ function WishCard({
     <article className={`wish-card${status === 'done' ? ' is-done' : ''}`}>
       {wish.imageId ? (
         <div className="wish-image">
-          <MediaImage mediaId={wish.imageId} alt={wish.title} />
+          <MediaImage
+            mediaId={wish.imageId}
+            alt={wish.title}
+            onOpen={() => onOpenPhoto(wish.imageId as string, wish.title)}
+          />
         </div>
       ) : null}
 

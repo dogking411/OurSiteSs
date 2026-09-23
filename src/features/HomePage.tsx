@@ -6,7 +6,7 @@ import { visibleStatus } from './wishlist/wishHelpers';
 
 export function HomePage() {
   const person = usePerson();
-  const { wishes, moments, loading } = useStore();
+  const { wishes, moments, plans, loading } = useStore();
   const partner = otherPerson(person);
 
   const partnerOpen = wishes.filter(
@@ -16,6 +16,7 @@ export function HomePage() {
     (wish) => wish.owner === person && visibleStatus(wish, person) === 'open',
   ).length;
   const reservedByMe = wishes.filter((wish) => wish.reservedBy === person).length;
+  const openPlans = plans.filter((plan) => !plan.done).length;
 
   const latest = moments.slice().sort((a, b) => b.date.localeCompare(a.date))[0];
 
@@ -46,6 +47,11 @@ export function HomePage() {
         <Link to="wishes" className="tile">
           <div className="tile-value">{loading ? '—' : reservedByMe}</div>
           <div className="tile-label">подарков ты уже присмотрел</div>
+        </Link>
+
+        <Link to="plans" className="tile">
+          <div className="tile-value">{loading ? '—' : openPlans}</div>
+          <div className="tile-label">планов впереди</div>
         </Link>
 
         <Link to="moments" className="tile">

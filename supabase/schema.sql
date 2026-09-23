@@ -18,10 +18,16 @@ alter table public.allowed_emails enable row level security;
 -- Ни одной политики: читать и менять список можно только отсюда, из SQL Editor.
 
 -- ВПИШИ СВОИ АДРЕСА:
-insert into public.allowed_emails (email, note) values
+-- Образцы заводятся только в пустой список. Иначе повторный запуск скрипта
+-- вернул бы эти адреса обратно уже после того, как их заменили настоящими, —
+-- и любой, кто зарегистрируется на sasha@example.com, получил бы доступ.
+insert into public.allowed_emails (email, note)
+select *
+from (values
   ('sasha@example.com', 'Саша'),
   ('sonya@example.com', 'Соня')
-on conflict (email) do nothing;
+) as sample(email, note)
+where not exists (select 1 from public.allowed_emails);
 
 -- security definer — чтобы функция могла заглянуть в allowed_emails,
 -- которая для обычного пользователя закрыта наглухо.
@@ -73,13 +79,30 @@ create table if not exists public.moments (
   created_by text not null check (created_by in ('sasha', 'sonya'))
 );
 
+-- Планы трёх видов — места, что посмотреть и еда — лежат в одной таблице и
+-- различаются полем kind. Поля, не относящиеся к виду, просто пустые.
 create table if not exists public.plans (
   id         text primary key,
+  kind       text not null default 'place' check (kind in ('place', 'watch', 'food')),
+  owner      text not null check (owner in ('sasha', 'sonya')),
   title      text not null,
-  note       text default '',
-  date       text default '',
-  status     text not null default 'idea' check (status in ('idea', 'planned', 'done', 'dropped')),
-  who        text not null default 'both' check (who in ('sasha', 'sonya', 'both')),
+  note       text not null default '',
+  done       boolean not null default false,
+  done_at    text not null default '',
+  -- Момент архива, созданный при отметке «были».
+  moment_id  text,
+  -- Адрес: у мест и у кафе.
+  address    text not null default '',
+  -- Жанр: у «посмотреть».
+  genre      text not null default '',
+  url        text not null default '',
+  -- Только у kind = 'food'.
+  food_kind  text check (food_kind is null or food_kind in ('cafe', 'delivery', 'cook')),
+  -- Где заказать: у доставки.
+  vendor     text not null default '',
+  -- Рецепт: у «приготовить».
+  recipe     text not null default '',
+  image_ids  text[] not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   created_by text not null check (created_by in ('sasha', 'sonya'))
@@ -87,6 +110,7 @@ create table if not exists public.plans (
 
 create index if not exists wishes_owner_idx on public.wishes (owner);
 create index if not exists moments_date_idx on public.moments (date desc);
+create index if not exists plans_kind_owner_idx on public.plans (kind, owner);
 
 -- ---------------------------------------------------------------------------
 -- Права

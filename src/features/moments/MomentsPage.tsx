@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MediaImage } from '../../components/MediaImage';
+import { MediaImage, usePhotoViewer } from '../../components/MediaImage';
 import { useStore } from '../../data/store';
 import { PEOPLE, type Moment } from '../../data/schema';
 import { MomentForm } from './MomentForm';
@@ -9,6 +9,7 @@ export function MomentsPage() {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Moment | null>(null);
   const [tag, setTag] = useState<string | null>(null);
+  const photos = usePhotoViewer();
 
   const allTags = useMemo(() => {
     const set = new Set<string>();
@@ -79,7 +80,12 @@ export function MomentsPage() {
                 {moment.imageIds.length > 0 ? (
                   <div className="moment-photos">
                     {moment.imageIds.map((id) => (
-                      <MediaImage key={id} mediaId={id} alt={moment.title} />
+                      <MediaImage
+                        key={id}
+                        mediaId={id}
+                        alt={moment.title}
+                        onOpen={() => photos.open(id, moment.title)}
+                      />
                     ))}
                   </div>
                 ) : null}
@@ -114,6 +120,8 @@ export function MomentsPage() {
           ))}
         </div>
       )}
+
+      {photos.viewer}
 
       {creating ? <MomentForm moment={null} onClose={() => setCreating(false)} /> : null}
       {editing ? <MomentForm moment={editing} onClose={() => setEditing(null)} /> : null}

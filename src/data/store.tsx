@@ -27,7 +27,7 @@ interface Collections {
 
 const EMPTY: Collections = { wishes: [], moments: [], plans: [] };
 
-interface StoreValue extends Collections {
+export interface StoreValue extends Collections {
   /** Идёт первая загрузка данных. */
   loading: boolean;
   /** Ошибка последней операции — показывается полосой сверху. */
@@ -50,7 +50,12 @@ interface StoreValue extends Collections {
   importAll: (data: AppData) => Promise<void>;
 }
 
-const StoreContext = createContext<StoreValue | null>(null);
+/**
+ * Контекст открыт наружу ради стенда разработки (preview.html): он подставляет
+ * свои данные, чтобы посмотреть экраны, не заходя в облако. В самом сайте
+ * пользоваться им напрямую не нужно — есть useStore.
+ */
+export const StoreContext = createContext<StoreValue | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   // Хранилище одно и на весь сеанс: пересоздавать адаптер больше незачем.
