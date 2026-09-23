@@ -14,6 +14,7 @@ import {
   type Plan,
   type PlanKind,
 } from '../../data/schema';
+import { collectCategories, normalizeCategory } from './planHelpers';
 
 /**
  * Создание и правка плана.
@@ -35,8 +36,10 @@ export function PlanForm({
   author: PersonId;
   onClose: () => void;
 }) {
-  const { save, adapter } = useStore();
+  const { save, adapter, plans } = useStore();
   const [draft, setDraft] = useState<Plan>(() => plan ?? emptyPlan(kind, owner, author));
+  // Подсказки берём из того, что уже заведено, — отдельного списка нет.
+  const usedCategories = collectCategories(plans, 'place');
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -99,16 +102,23 @@ export function PlanForm({
       </div>
 
       {kind === 'place' ? (
-        <div className="field">
-          <label htmlFor="plan-address">Адрес</label>
-          <input
-            id="plan-address"
-            className="input"
-            value={draft.address}
-            placeholder="Город, улица, дом"
-            onChange={(event) => patch({ address: event.target.value })}
+        <>
+          <CategoryField
+            value={draft.category}
+            suggestions={usedCategories}
+            onChange={(category) => patch({ category })}
           />
-        </div>
+          <div className="field">
+            <label htmlFor="plan-address">Адрес</label>
+            <input
+              id="plan-address"
+              className="input"
+              value={draft.address}
+              placeholder="Город, улица, дом"
+              onChange={(event) => patch({ address: event.target.value })}
+            />
+          </div>
+        </>
       ) : null}
 
       {kind === 'watch' ? (
@@ -264,6 +274,50 @@ export function PlanForm({
         </div>
       </div>
     </Modal>
+  );
+}
+
+/**
+ * Выбор подраздела: кнопки с уже использованными и поле для нового.
+ *
+ * Список подразделов нигде не хранится, поэтому и управлять им негде: чтобы
+ * завести новый, достаточно вписать его здесь, а чтобы избавиться от лишнего —
+ * убрать у последнего места, где он стоял.
+ */
+function CategoryField({
+  value,
+  suggestions,
+  onChange,
+}: {
+  value: string;
+  suggestions: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="field">
+      <label htmlFor="plan-category">Тип места</label>
+      {suggestions.length > 0 ? (
+        <div className="row" style={{ gap: 6 }}>
+          {suggestions.map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={`tag${value === option ? ' tag-accent' : ''}`}
+              onClick={() => onChange(value === option ? '' : option)}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <input
+        id="plan-category"
+        className="input"
+        value={value}
+        placeholder="парк, галерея, кино, театр, лепка…"
+        onChange={(event) => onChange(normalizeCategory(event.target.value))}
+      />
+    </div>
   );
 }
 

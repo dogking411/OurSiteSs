@@ -50,6 +50,26 @@ export const PLAN_TEXTS: Record<
   },
 };
 
+/**
+ * Приводит подраздел к общему виду.
+ *
+ * Без этого «Парк», «парк» и «парк » разъехались бы на три разные метки и
+ * засорили фильтр. Нижний регистр выбран намеренно: подразделы — это типы
+ * («парк», «кино»), а не имена собственные.
+ */
+export function normalizeCategory(value: string): string {
+  return value.trim().toLowerCase().slice(0, 24);
+}
+
+/** Подразделы, которые реально используются, — из них и состоит фильтр. */
+export function collectCategories(plans: Plan[], kind: PlanKind): string[] {
+  const seen = new Set<string>();
+  for (const plan of plans) {
+    if (plan.kind === kind && plan.category) seen.add(plan.category);
+  }
+  return Array.from(seen).sort((a, b) => a.localeCompare(b, 'ru'));
+}
+
 /** Невыполненное сверху, внутри — новое первым. */
 export function sortPlans(plans: Plan[]): Plan[] {
   return plans.slice().sort((a, b) => {

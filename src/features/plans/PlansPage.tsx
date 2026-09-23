@@ -14,7 +14,14 @@ import {
   type PlanKind,
 } from '../../data/schema';
 import { PlanForm } from './PlanForm';
-import { linkLabel, mapUrl, momentFromPlan, PLAN_TEXTS, sortPlans } from './planHelpers';
+import {
+  collectCategories,
+  linkLabel,
+  mapUrl,
+  momentFromPlan,
+  PLAN_TEXTS,
+  sortPlans,
+} from './planHelpers';
 
 export function PlansPage() {
   const person = usePerson();
@@ -24,15 +31,24 @@ export function PlansPage() {
   const [editing, setEditing] = useState<Plan | null>(null);
   const [creating, setCreating] = useState(false);
   const [showDone, setShowDone] = useState(false);
+  const [category, setCategory] = useState<string | null>(null);
   const photos = usePhotoViewer();
 
   const partner = otherPerson(person);
   const texts = PLAN_TEXTS[kind];
 
+  // Подразделы есть только у мест и складываются из уже заведённого.
+  const categories = useMemo(() => collectCategories(plans, kind), [plans, kind]);
+
   const items = useMemo(() => {
-    const forTab = plans.filter((plan) => plan.kind === kind && plan.owner === owner);
+    const forTab = plans.filter(
+      (plan) =>
+        plan.kind === kind &&
+        plan.owner === owner &&
+        (category === null || plan.category === category),
+    );
     return sortPlans(showDone ? forTab : forTab.filter((plan) => !plan.done));
-  }, [plans, kind, owner, showDone]);
+  }, [plans, kind, owner, showDone, category]);
 
   const doneCount = plans.filter(
     (plan) => plan.kind === kind && plan.owner === owner && plan.done,
@@ -56,7 +72,11 @@ export function PlansPage() {
             key={option}
             type="button"
             aria-pressed={kind === option}
-            onClick={() => setKind(option)}
+            onClick={() => {
+              setKind(option);
+              // Подразделы у каждого вида свои, чужой фильтр сбрасываем.
+              setCategory(null);
+            }}
           >
             <span aria-hidden="true">{PLAN_KIND_LABELS[option].icon}</span>{' '}
             {PLAN_KIND_LABELS[option].tab}
@@ -84,6 +104,28 @@ export function PlansPage() {
           </button>
         ) : null}
       </div>
+
+      {categories.length > 0 ? (
+        <div className="row" style={{ gap: 6 }}>
+          <button
+            type="button"
+            className={`tag${category === null ? ' tag-accent' : ''}`}
+            onClick={() => setCategory(null)}
+          >
+            Все
+          </button>
+          {categories.map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={`tag${category === option ? ' tag-accent' : ''}`}
+              onClick={() => setCategory(option === category ? null : option)}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="empty">Загружаем…</div>
@@ -192,6 +234,7 @@ function PlanCard({
           {plan.kind === 'food' && plan.foodKind ? (
             <span className="tag tag-accent">{FOOD_KIND_LABELS[plan.foodKind]}</span>
           ) : null}
+          {plan.category ? <span className="tag tag-accent">{plan.category}</span> : null}
           {plan.kind === 'watch' && plan.genre ? <span className="tag">{plan.genre}</span> : null}
           {plan.done ? <span className="tag tag-success">{texts.doneTag}</span> : null}
           {plan.momentId ? <span className="tag">в архиве</span> : null}

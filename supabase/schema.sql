@@ -91,6 +91,9 @@ create table if not exists public.plans (
   done_at    text not null default '',
   -- Момент архива, созданный при отметке «были».
   moment_id  text,
+  -- Подраздел места: парк, галерея, кино. Свободная метка, список нигде не
+  -- хранится — он складывается из того, что уже заведено.
+  category   text not null default '',
   -- Адрес: у мест и у кафе.
   address    text not null default '',
   -- Жанр: у «посмотреть».

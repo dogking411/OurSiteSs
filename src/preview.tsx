@@ -36,11 +36,14 @@ function plan(over: Partial<Plan>): Plan {
 }
 
 const PLANS: Plan[] = [
+  plan({ kind: 'place', owner: 'sasha', title: 'Третьяковка', category: 'галерея', address: 'Москва, Лаврушинский 10' }),
+  plan({ kind: 'place', owner: 'sasha', title: 'Мастер-класс по лепке', category: 'лепка', address: 'Москва, Покровка 3' }),
   plan({
     kind: 'place',
     owner: 'sasha',
     title: 'Смотровая на Воробьёвых',
     address: 'Москва, Воробьёвы горы',
+    category: 'парк',
     note: 'Говорят, лучше всего на закате.',
     imageIds: ['a', 'b'],
   }),
@@ -49,6 +52,7 @@ const PLANS: Plan[] = [
     owner: 'sasha',
     title: 'Домик у озера',
     address: 'Тверская область',
+    category: 'база отдыха',
     done: true,
     momentId: 'moment_1',
   }),
