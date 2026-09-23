@@ -38,8 +38,9 @@ export function PlanForm({
 }) {
   const { save, adapter, plans } = useStore();
   const [draft, setDraft] = useState<Plan>(() => plan ?? emptyPlan(kind, owner, author));
-  // Подсказки берём из того, что уже заведено, — отдельного списка нет.
-  const usedCategories = collectCategories(plans, 'place');
+  // Подсказки берём из того, что уже заведено в этом же виде, — отдельного
+  // списка подразделов нет. У мест свои типы, у «посмотреть» свои.
+  const usedCategories = collectCategories(plans, kind);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -101,13 +102,17 @@ export function PlanForm({
         />
       </div>
 
+      {kind === 'place' || kind === 'watch' ? (
+        <CategoryField
+          kind={kind}
+          value={draft.category}
+          suggestions={usedCategories}
+          onChange={(category) => patch({ category })}
+        />
+      ) : null}
+
       {kind === 'place' ? (
         <>
-          <CategoryField
-            value={draft.category}
-            suggestions={usedCategories}
-            onChange={(category) => patch({ category })}
-          />
           <div className="field">
             <label htmlFor="plan-address">Адрес</label>
             <input
@@ -129,7 +134,7 @@ export function PlanForm({
               id="plan-genre"
               className="input"
               value={draft.genre}
-              placeholder="Комедия, документалка"
+              placeholder="комедия, драма, ужасы"
               onChange={(event) => patch({ genre: event.target.value })}
             />
           </div>
@@ -285,17 +290,27 @@ export function PlanForm({
  * убрать у последнего места, где он стоял.
  */
 function CategoryField({
+  kind,
   value,
   suggestions,
   onChange,
 }: {
+  kind: PlanKind;
   value: string;
   suggestions: string[];
   onChange: (value: string) => void;
 }) {
+  // У «посмотреть» подраздел — это что именно смотрим, а жанр остаётся
+  // отдельным полем: сериал бывает и комедией, и детективом.
+  const label = kind === 'place' ? 'Тип места' : 'Что это';
+  const placeholder =
+    kind === 'place'
+      ? 'парк, галерея, кино, театр, лепка…'
+      : 'фильм, сериал, аниме, документалка…';
+
   return (
     <div className="field">
-      <label htmlFor="plan-category">Тип места</label>
+      <label htmlFor="plan-category">{label}</label>
       {suggestions.length > 0 ? (
         <div className="row" style={{ gap: 6 }}>
           {suggestions.map((option) => (
@@ -314,7 +329,7 @@ function CategoryField({
         id="plan-category"
         className="input"
         value={value}
-        placeholder="парк, галерея, кино, театр, лепка…"
+        placeholder={placeholder}
         onChange={(event) => onChange(normalizeCategory(event.target.value))}
       />
     </div>
