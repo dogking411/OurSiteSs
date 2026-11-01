@@ -4,6 +4,7 @@ import { App } from './App';
 import { ProfileProvider, ThemeProvider } from './data/profile';
 import { StoreProvider, useStore } from './data/store';
 import { ChoosePersonScreen } from './features/auth/ChoosePersonScreen';
+import { CloudDownScreen } from './features/auth/CloudDownScreen';
 import { SetupScreen } from './features/auth/SetupScreen';
 import { SignInScreen } from './features/auth/SignInScreen';
 import { isCloudConfigured } from './storage';
@@ -13,6 +14,7 @@ import './styles/components.css';
 /**
  * Состояния запуска, по порядку:
  *   нет ключей облака      -> экран первой настройки;
+ *   облако не отвечает     -> экран «облако недоступно» с кнопкой повтора;
  *   сессия ещё проверяется -> ожидание (иначе мигнёт форма входа, хотя вход есть);
  *   не вошли               -> экран входа;
  *   аккаунт без имени      -> одноразовый вопрос «кто ты»;
@@ -23,6 +25,10 @@ function Root() {
 
   if (!status.initialized) {
     return <div className="gate">Загружаем…</div>;
+  }
+  // Связи нет — показываем причину, а не форму входа: вводить пароль некуда.
+  if (!status.signedIn && status.error) {
+    return <CloudDownScreen error={status.error} />;
   }
   if (!status.signedIn) {
     return <SignInScreen />;

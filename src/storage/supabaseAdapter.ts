@@ -10,6 +10,10 @@ import type {
 import { NotConnectedError, StorageConfigError } from './types';
 
 const MEDIA_BUCKET = 'media';
+/** Сколько ждём ответа на один запрос к облаку. */
+const REQUEST_TIMEOUT_MS = 15_000;
+/** Сколько ждём проверки сессии целиком, со всеми повторами внутри клиента. */
+const STARTUP_TIMEOUT_MS = 8_000;
 /** Время жизни подписанной ссылки на картинку. */
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
@@ -59,7 +63,20 @@ export class SupabaseAdapter implements StorageAdapter {
   async init(): Promise<void> {
     try {
       const client = await this.getClient();
-      const { data } = await client.auth.getSession();
+      // Ограничение нужно на всю операцию, а не на отдельный запрос: при
+      // недоступном облаке каждый запрос падает мгновенно, но клиент повторяет
+      // попытку продлить токен десятки раз подряд, и getSession не возвращается
+      // очень долго. Именно так и получался бесконечный экран «Загружаем…».
+      const { data, error } = await withDeadline(
+        client.auth.getSession(),
+        STARTUP_TIMEOUT_MS,
+        'Облако не ответило вовремя',
+      );
+      // Ошибку отсюда нельзя игнорировать. Если сохранённый токен протух, клиент
+      // идёт продлевать его по сети, и при недоступном облаке возвращает ошибку
+      // в поле, а не исключением. Раньше мы смотрели только на data и молча
+      // показывали форму входа — пароль в ней всё равно не сработал бы.
+      if (error) throw error;
       this.applySession(data.session?.user ?? null);
       // Сессия продлевается сама по refresh-токену; ловим вход, выход и протухание.
       client.auth.onAuthStateChange((event, session) => {
@@ -75,7 +92,7 @@ export class SupabaseAdapter implements StorageAdapter {
         if (event === 'SIGNED_OUT') this.applySession(null);
       });
     } catch (error) {
-      this.patchStatus({ error: describeError(error) });
+      this.patchStatus({ error: describeUnreachable(error) });
     } finally {
       this.patchStatus({ busy: false, initialized: true });
     }
@@ -113,7 +130,7 @@ export class SupabaseAdapter implements StorageAdapter {
       }
       this.applySession(data.session.user);
     } catch (error) {
-      this.patchStatus({ error: describeError(error) });
+      this.patchStatus({ error: describeUnreachable(error) });
       throw error;
     } finally {
       this.patchStatus({ busy: false });
@@ -233,6 +250,7 @@ export class SupabaseAdapter implements StorageAdapter {
     const { createClient } = await import('@supabase/supabase-js');
     this.client = createClient(this.config.url, this.config.anonKey, {
       auth: { persistSession: true, autoRefreshToken: true },
+      global: { fetch: fetchWithTimeout },
     });
     return this.client;
   }
@@ -261,6 +279,39 @@ export class SupabaseAdapter implements StorageAdapter {
   }
 }
 
+/**
+ * Любой запрос к облаку сдаётся через REQUEST_TIMEOUT_MS.
+ *
+ * Без этого недоступное облако подвешивало весь сайт: проверка сессии не
+ * заканчивалась ни успехом, ни ошибкой, и человек бесконечно смотрел на
+ * «Загружаем…». Так бывает, когда проект Supabase уснул на бесплатном тарифе —
+ * его имя просто перестаёт существовать в DNS, и запрос уходит в никуда.
+ * Лучше честная ошибка через несколько секунд, чем вечное ожидание.
+ */
+/**
+ * Сдаётся, если операция не уложилась в отведённое время.
+ *
+ * Брошенный промис продолжает жить и доругиваться с сетью сам по себе — это не
+ * страшно: его результат уже никому не нужен, а повторную попытку человек
+ * запускает кнопкой.
+ */
+function withDeadline<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error(message)), ms);
+    }),
+  ]);
+}
+
+function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  // Свой сигнал клиента не затираем: он отменяет запросы при выходе и смене
+  // состояния, и без него отмена перестала бы работать.
+  const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
+  return fetch(input, { ...init, signal });
+}
+
 /** Postgres любит snake_case, TypeScript — camelCase. Переводим на границе. */
 function toSnake(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
@@ -280,6 +331,22 @@ function toCamel(row: Record<string, unknown>): Record<string, unknown> {
 
 function sanitizeName(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-40) || 'file';
+}
+
+/**
+ * Сетевые ошибки по-английски и без подробностей («Failed to fetch») ничего не
+ * объясняют. Называем самую частую причину вслух: на бесплатном тарифе проект
+ * Supabase засыпает после недели простоя, и будится одной кнопкой в панели.
+ */
+function describeUnreachable(error: unknown): string {
+  const text = describeError(error);
+  const networkish =
+    /failed to fetch|networkerror|timeout|aborted|load failed|err_name_not_resolved|не ответило вовремя/i.test(text);
+  return networkish
+    ? 'Облако не отвечает. Чаще всего это значит, что проект Supabase уснул: ' +
+        'на бесплатном тарифе он засыпает после недели простоя. Откройте ' +
+        'supabase.com/dashboard и нажмите Restore — данные при этом сохраняются.'
+    : text;
 }
 
 function describeError(error: unknown): string {
